@@ -45,4 +45,10 @@ public class UrlService {
         // 4. Save the complete entity in ONE INSERT
         return urlRepository.save(url);
     }
+    public Url getUrlByShortCode(String shortCode) {
+
+        return urlRepository.findByShortCode(shortCode)
+                .orElseThrow(() ->
+                        new RuntimeException("Short URL not found"));
+    }
 }
