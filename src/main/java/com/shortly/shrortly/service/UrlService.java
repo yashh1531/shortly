@@ -7,20 +7,28 @@ import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import org.springframework.stereotype.Service;
 
+import com.shortly.shrortly.exception.ShortUrlExpiredException;
+import com.shortly.shrortly.exception.ShortUrlNotFoundException;
+
 import java.time.LocalDateTime;
+import java.time.Duration;
 
 @Service
 public class UrlService {
 
     private final UrlRepository urlRepository;
+    private final RedisService redisService;
 
     @PersistenceContext
     private EntityManager entityManager;
 
-    public UrlService(UrlRepository urlRepository) {
+    public UrlService(
+            UrlRepository urlRepository,
+            RedisService redisService
+    ) {
         this.urlRepository = urlRepository;
+        this.redisService = redisService;
     }
-
     public Url createShortUrl(String originalUrl) {
 
         // 1. Get a unique ID from PostgreSQL sequence
@@ -47,8 +55,46 @@ public class UrlService {
     }
     public Url getUrlByShortCode(String shortCode) {
 
-        return urlRepository.findByShortCode(shortCode)
+        // 1. Check Redis first
+        String cachedUrl = redisService.getUrl(shortCode);
+
+        if (cachedUrl != null) {
+
+            Url url = new Url();
+
+            url.setShortCode(shortCode);
+            url.setOriginalUrl(cachedUrl);
+
+            return url;
+        }
+
+        // 2. Cache miss → query PostgreSQL
+        Url url = urlRepository.findByShortCode(shortCode)
                 .orElseThrow(() ->
-                        new RuntimeException("Short URL not found"));
+                        new ShortUrlNotFoundException(
+                                "Short URL not found"
+                        ));
+
+        // 3. Check expiry
+        if (url.getExpiresAt().isBefore(LocalDateTime.now())) {
+            throw new ShortUrlExpiredException(
+                    "Short URL has expired"
+            );
+        }
+
+        // 4. Put valid URL into Redis
+        Duration ttl = Duration.between(
+                LocalDateTime.now(),
+                url.getExpiresAt()
+        );
+
+        redisService.saveUrl(
+                shortCode,
+                url.getOriginalUrl(),
+                ttl
+        );
+
+        // 5. Return URL
+        return url;
     }
 }
