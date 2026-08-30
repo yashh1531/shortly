@@ -6,6 +6,7 @@ import com.shortly.shrortly.entity.Url;
 import com.shortly.shrortly.service.UrlService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import jakarta.validation.Valid;
 
 @RestController
 @RequestMapping("/api/urls")
@@ -19,7 +20,7 @@ public class UrlController {
 
     @PostMapping
     public ResponseEntity<ShortUrlResponse> createShortUrl(
-            @RequestBody CreateUrlRequest request
+            @Valid @RequestBody CreateUrlRequest request
     ) {
 
         Url url = urlService.createShortUrl(
