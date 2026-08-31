@@ -5,8 +5,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.bind.MethodArgumentNotValidException;
-import java.util.Map;
 
+import java.util.Map;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
@@ -51,6 +51,18 @@ public class GlobalExceptionHandler {
                 .body(Map.of(
                         "error", "Validation failed",
                         "message", message
+                ));
+    }
+
+    @ExceptionHandler(RateLimitExceededException.class)
+    public ResponseEntity<Map<String, String>> handleRateLimit(
+            RateLimitExceededException exception
+    ) {
+
+        return ResponseEntity
+                .status(HttpStatus.TOO_MANY_REQUESTS)
+                .body(Map.of(
+                        "error", exception.getMessage()
                 ));
     }
 }
