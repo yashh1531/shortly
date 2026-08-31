@@ -1,5 +1,7 @@
 package com.shortly.shrortly.controller;
 
+import org.springframework.web.bind.annotation.CrossOrigin;
+
 import com.shortly.shrortly.dto.CreateUrlRequest;
 import com.shortly.shrortly.dto.ShortUrlResponse;
 import com.shortly.shrortly.entity.Url;
@@ -8,9 +10,11 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import jakarta.validation.Valid;
 
+@CrossOrigin(origins = "http://localhost:5173")
 @RestController
 @RequestMapping("/api/urls")
 public class UrlController {
+
 
     private final UrlService urlService;
 
@@ -33,7 +37,8 @@ public class UrlController {
         ShortUrlResponse response = new ShortUrlResponse(
                 url.getShortCode(),
                 shortUrl,
-                url.getOriginalUrl()
+                url.getOriginalUrl(),
+                url.getExpiresAt().toString()
         );
 
         return ResponseEntity.ok(response);
